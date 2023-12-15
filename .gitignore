@@ -4,3 +4,7 @@ __pycache__/
 minutaceci.xlsx
 
 test.py
+
+.env
+
+.gitignore

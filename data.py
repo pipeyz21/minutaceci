@@ -1,8 +1,12 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import warnings
+import os
+from dotenv import load_dotenv
 
-PATH = "minutaceci.xlsx"
+load_dotenv()
+
+PATH = os.getenv("DB_PATH")
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message="Data Validation extension is not supported and will be removed")
