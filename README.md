@@ -1,13 +1,11 @@
-<<<<<<< HEAD
 # MINUTA CECI
 MinutaCeci es un negocio familiar de almuerzos caseros y otras comidas en Coquimbo, el objetivo de este proyecto es desarrollar una comprensión inicial del negocio para encontrar patrones y/o tendencias, que sirvan para buscar diferentes mejoras a los procesos del negocio través de los datos recopilados.
 
 ## Proyectos (ordenados por importancia actual)
-    1. [Pipeline](https://github.com/pipeyz21/minutaceci/tree/main/apps/01_pipeline/README.md) 👌
-    2. Análisis de datos
-    3. Lector de Boletas
-    4. Punto de Venta
-    5. Página Web
-=======
-# minutaceci
->>>>>>> f0e66b191a787a46b227a0c6e1dccbb70182af28
+
+1. [Pipeline](https://github.com/pipeyz21/minutaceci/blob/main/apps/01_pipeline)
+2. Análisis de datos
+3. Lector de Boletas
+4. Punto de Venta
+5. Página Web
+
