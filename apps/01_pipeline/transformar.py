@@ -51,6 +51,7 @@ def calcular_ingresos(ruta_almuerzos, ruta_otros):
     otros['Boleta'] += max_boletas 
 
     df = pd.concat([almuerzos, otros], sort=False)
+
     df['Cliente'] = df['Cliente'].replace(np.nan, '???')
     df['Ensalada'] = df['Ensalada'].replace(np.nan, 'S/E')
     df['Acompañamiento'] = df['Acompañamiento'].replace(np.nan, 'SIN ACOM.')
@@ -76,6 +77,7 @@ def calcular_ingresos(ruta_almuerzos, ruta_otros):
     df = periodos_tiempo(df, 'Fecha')
 
     ingresos = df.copy()
+    ingresos['Fecha'] = pd.to_datetime(ingresos['Fecha'])
 
     return ingresos, precios, productos_ventas, clientes, acompañamientos, extras
 
@@ -109,12 +111,12 @@ def calcular_productos_ventas(ingresos, ruta_principales):
 
     indices_nulos = productos_ventas[(productos_ventas['id'].isna())].index
 
-    productos_ventas = productos_ventas.merge(principales, 'left', left_on='Producto', right_on='Principal')
-
     productos_ventas['aux'] = productos_ventas.index * 1.0 + max_id
     productos_ventas.loc[indices_nulos, 'id'] = productos_ventas['aux']
-    productos_ventas = productos_ventas.drop(columns={'aux','Principal','Precio','Vencimiento'})
+    productos_ventas = productos_ventas.drop(columns={'aux'})
+    productos_ventas = productos_ventas.merge(principales, 'left', left_on='Producto', right_on='Principal')
     productos_ventas['Categoria'] = productos_ventas['Categoria'].replace(np.nan, 'OTROS') 
+    productos_ventas = productos_ventas.drop_duplicates(subset='id').drop(columns={'Principal','Precio','Vencimiento'})
     
     #buscar precios de otros_ingresos
     
