@@ -1,0 +1,7 @@
+.env
+
+datos/*
+
+__pycache__
+
+analisis_datos/*
