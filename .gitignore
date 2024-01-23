@@ -1,6 +1,8 @@
 .env
 .vs
 
+venv
+
 datos/*
 
 __pycache__

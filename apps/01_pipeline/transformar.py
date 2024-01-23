@@ -28,7 +28,7 @@ def limpieza_df(df):
     df = df.map(lambda x: x.upper() if isinstance(x, str) else x)
     
     if 'Fecha' in df.columns:
-        df = df.dropna(subset='Fecha')
+        df = df.dropna(subset=['Fecha'])
 
     return df
 
@@ -48,14 +48,13 @@ def calcular_ingresos(ruta_almuerzos, ruta_otros):
     otros = otros.rename(columns={'Producto':'Producto'})
     otros['Tipo'] = 'OTROS'
 
-    max_boletas = almuerzos['Boleta'].max() + 1
-    otros['Boleta'] += max_boletas 
+    otros['Boleta'] += almuerzos['Boleta'].max() + 1
 
     df = pd.concat([almuerzos, otros], sort=False)
 
-    df['Cliente'] = df['Cliente'].replace(np.nan, '???')
-    df['Ensalada'] = df['Ensalada'].replace(np.nan, 'S/E')
-    df['Acompañamiento'] = df['Acompañamiento'].replace(np.nan, 'SIN ACOM.')
+    df['Cliente'] = df['Cliente'].fillna('???')
+    df['Ensalada'] = df['Ensalada'].fillna('S/E')
+    df['Acompañamiento'] = df['Acompañamiento'].fillna('SIN ACOM.')
     
     ruta_principales = os.getenv('RUTA_PRINCIPALES')
     precios, productos_ventas = calcular_productos_ventas(df, ruta_principales)
@@ -69,19 +68,13 @@ def calcular_ingresos(ruta_almuerzos, ruta_otros):
     extras = pd.DataFrame(df['Ensalada'].drop_duplicates()).reset_index()
     extras = extras.drop(columns='index').reset_index().rename(columns={'index':'id_extra'})
     
-    df = df.merge(clientes, 'left')
-    df = df.merge(productos_ventas, 'left')
-    df = df.merge(acompañamientos, 'left')
-    df = df.merge(extras, 'left')
-    df = df.rename(columns={'id':'id_producto'})
-    df = df.drop(columns={'Producto','Categoria','Cliente','Acompañamiento','Ensalada'})
+    df = df.merge(clientes, 'left').merge(productos_ventas, 'left').merge(acompañamientos, 'left').merge(extras, 'left')
+    df = df.rename(columns={'id':'id_producto'}).drop(columns={'Producto','Categoria','Cliente','Acompañamiento','Ensalada'})
     df = periodos_tiempo(df, 'Fecha')
 
     ingresos = df.copy()
-    ingresos['Fecha'] = pd.to_datetime(ingresos['Fecha'])
-
     ingresos = transformar_nulos_ingresos(ingresos)
-    clientes = indicadores_clientes(clientes, ingresos)
+    productos_ventas = transformar_productos_ventas(productos_ventas)
 
     return ingresos, precios, productos_ventas, clientes, acompañamientos, extras
 
@@ -206,20 +199,39 @@ def transformar_nulos_ingresos(df):
 
     return df
 
+def transformar_productos_ventas(productos_ventas):
+    productos_ventas['Envase'] = np.nan
+
+    ct5 = productos_ventas[productos_ventas['Producto']=='ZAPALLO ITALIANO'].index
+    productos_ventas.loc[ct5, 'Envase'] = 141
+
+    c18 = productos_ventas[(productos_ventas['Producto'].str.startswith('LASAÑA')) | (productos_ventas['Categoria']=='PASTELES')].index
+    productos_ventas.loc[c18, 'Envase'] = 7
+
+    marmitas = productos_ventas[(productos_ventas['Envase'].isna()) & (productos_ventas['Categoria'] != 'OTROS')].index
+    productos_ventas.loc[marmitas, 'Envase'] = 3
+
+    return productos_ventas
+
 def encontrar_favoritos(lista):
     datos = pd.Series(lista).value_counts().reset_index().rename(columns={'index': 'id', 0: 'cantidad'})
 
     return datos.iloc[0, 0]
 
-def indicadores_clientes(clientes, ingresos):
+def indicadores_clientes(clientes, ingresos, Año=None):
 
-    df1 = ingresos[['Boleta','Fecha','id_cliente','Tipo','id_producto','id_acompañamiento','id_extra','Cantidad','Total']]
+    df = ingresos.copy()
+    df_clientes = clientes.copy()
 
-    # lista_clientes = clientes['id_cliente'].to_list()
+    if not Año is None:
+        df = df[df['Año']==Año]
+
+    df1 = df[['Boleta','Fecha','id_cliente','Tipo','id_producto','id_acompañamiento','id_extra','Cantidad','Total']]
 
     for id, df2 in df1.groupby('id_cliente'): #
-        
+              
         fechas = set(df2['Fecha'].to_list())
+
         if len(fechas)>1:
 
             fechas = pd.DataFrame(fechas).rename(columns={0:'Fecha'}).sort_values('Fecha').reset_index().drop(columns='index')
@@ -230,47 +242,48 @@ def indicadores_clientes(clientes, ingresos):
         else: 
             dif_fechas = 0.
 
+        id = int(id)
 
-        clientes.loc[id, 'primera_compra'] = df2['Fecha'].min()
-        clientes.loc[id, 'ultima_compra'] = df2['Fecha'].max()
+        df_clientes.loc[id, 'primera_compra'] = df2['Fecha'].min()
+        df_clientes.loc[id, 'ultima_compra'] = df2['Fecha'].max()
 
         df3 = df2[['Fecha','Boleta','Total']].groupby(['Boleta','Fecha']).sum().reset_index()
-        clientes.loc[id, 'compra_minima'] = df3['Total'].min()
-        clientes.loc[id, 'compra_maxima'] = df3['Total'].max()
-        clientes.loc[id, 'gasto_total'] = df3['Total'].sum()
-        clientes.loc[id, 'boletas'] = df3['Boleta'].nunique()
+        df_clientes.loc[id, 'compra_minima'] = df3['Total'].min()
+        df_clientes.loc[id, 'compra_maxima'] = df3['Total'].max()
+        df_clientes.loc[id, 'gasto_total'] = df3['Total'].sum()
+        df_clientes.loc[id, 'boletas'] = df3['Boleta'].nunique()
 
         almuerzos = df2[df2['Tipo']=='ALMUERZOS']
 
         if not almuerzos.empty:
-            clientes.loc[id, 'gasto_almuerzos'] = almuerzos['Total'].sum()
-            clientes.loc[id, 'cantidad_almuerzos'] = almuerzos['Cantidad'].sum()
+            df_clientes.loc[id, 'gasto_almuerzos'] = almuerzos['Total'].sum()
+            df_clientes.loc[id, 'cantidad_almuerzos'] = almuerzos['Cantidad'].sum()
         
         else:
-            clientes.loc[id, 'gasto_almuerzos'] = 0
-            clientes.loc[id, 'cantidad_almuerzos'] = 0
+            df_clientes.loc[id, 'gasto_almuerzos'] = 0
+            df_clientes.loc[id, 'cantidad_almuerzos'] = 0
 
         otros = df2[df2['Tipo']=='OTROS']
 
         if not otros.empty:
-            clientes.loc[id, 'gasto_otros'] = otros['Total'].sum()
-            clientes.loc[id, 'cantidad_otros'] = otros['Cantidad'].sum()
+            df_clientes.loc[id, 'gasto_otros'] = otros['Total'].sum()
+            df_clientes.loc[id, 'cantidad_otros'] = otros['Cantidad'].sum()
         
         else:
-            clientes.loc[id, 'gasto_otros'] = 0
-            clientes.loc[id, 'cantidad_otros'] = 0
+            df_clientes.loc[id, 'gasto_otros'] = 0
+            df_clientes.loc[id, 'cantidad_otros'] = 0
 
         productos_favoritos = df2['id_producto'].to_list()
         acompañamientos_favoritos = df2['id_acompañamiento'].to_list()
         extras_favoritos = df2['id_extra'].to_list()
 
-        clientes.loc[id, 'producto_favorito'] = encontrar_favoritos(productos_favoritos)
-        clientes.loc[id, 'acompañamiento_favorito'] = encontrar_favoritos(acompañamientos_favoritos)
-        clientes.loc[id, 'extra_favorito'] = encontrar_favoritos(extras_favoritos)
-        clientes.loc[id, 'frecuencia_compra_dif'] = dif_fechas
+        df_clientes.loc[id, 'producto_favorito'] = encontrar_favoritos(productos_favoritos)
+        df_clientes.loc[id, 'acompañamiento_favorito'] = encontrar_favoritos(acompañamientos_favoritos)
+        df_clientes.loc[id, 'extra_favorito'] = encontrar_favoritos(extras_favoritos)
+        df_clientes.loc[id, 'frecuencia_compra_dif'] = dif_fechas
 
-    clientes['tiempo_cliente'] = (clientes['ultima_compra'] - clientes['primera_compra']).dt.days
-    clientes['frecuencia_compra_resta'] = (clientes['tiempo_cliente'])/clientes['boletas']
-    clientes['ticket_promedio'] = clientes['gasto_total']/clientes['boletas']
+    df_clientes['tiempo_cliente'] = (df_clientes['ultima_compra'] - df_clientes['primera_compra']).dt.days
+    df_clientes['frecuencia_compra_resta'] = (df_clientes['tiempo_cliente'])/df_clientes['boletas']
+    df_clientes['ticket_promedio'] = df_clientes['gasto_total']/df_clientes['boletas']
         
-    return clientes
+    return df_clientes.dropna()

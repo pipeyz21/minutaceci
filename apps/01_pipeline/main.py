@@ -53,6 +53,7 @@ def cargar_datos(ingresos, precios, productos_ventas, clientes, acompañamientos
     cargar.cargar_df_procesado(pd.read_csv(ruta_productos), ruta_procesados, 'productos_compras')
     cargar.cargar_df_procesado(pd.read_csv(ruta_proveedores), ruta_procesados, 'proveedores')
 
+
 def main():
     t1 = datetime.utcnow()
     
