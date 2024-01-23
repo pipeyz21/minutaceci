@@ -63,8 +63,12 @@ def main():
     cargar_datos(ingresos, precios, productos_ventas, clientes, acompañamientos, extras, costos)
 
     t2 = datetime.utcnow() - t1
+    
+    with open("apps/01_pipeline/registro_tiempo.csv", "a") as file:
+        # Escribe la línea con el ID y el tiempo de ejecución
+        file.write(f"{t1.strftime('%Y-%m-%d %H:%M:%S')}, {t2} \n")
 
     print(f"----------Tiempo de procesamiento de pipeline: {t2}----------")
-   
+
 if __name__ == '__main__':
     main()
