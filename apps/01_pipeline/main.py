@@ -1,21 +1,29 @@
-import extraer, transformar, cargar
+import transformar, cargar
 import os
 import pandas as pd
 from dotenv import load_dotenv
 from datetime import datetime
+from extraer import ManejadorExcel
 
 load_dotenv()
 
 def extraer_datos():
-    ruta_origen = os.getenv('RUTA_ORIGEN')
+    ruta_origen = os.getenv('RUTA_MINUTACECI')
     ruta_destino = os.getenv('RUTA_DESTINO')
 
     print('------------------Comienza la extracción de datos------------------')
     
-    if not os.path.exists(ruta_destino):
-        extraer.extraer_excel(ruta_origen, ruta_destino)
+    extraer = ManejadorExcel()
 
-    extraer.extraer_tablas_excel(ruta_destino)
+    print(ruta_origen)
+
+    minutaceci = extraer.extraer_excel(ruta_origen, ruta_destino, 'minutaceci')
+
+    if minutaceci is not None:
+        extraer.extraer_tablas_excel(minutaceci)
+    else:
+        print("No se pudo extraer el archivo, la ruta de destino es None.")
+
 
 def transformar_datos():
     print('----------------Comienza la transformación de datos----------------')

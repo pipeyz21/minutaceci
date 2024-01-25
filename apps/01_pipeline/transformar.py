@@ -287,3 +287,43 @@ def indicadores_clientes(clientes, ingresos, Año=None):
     df_clientes['ticket_promedio'] = df_clientes['gasto_total']/df_clientes['boletas']
         
     return df_clientes.dropna()
+
+def indicadores_ingresos(df, periodo_tiempo, Categorizar=False, fecha_inicio=None, fecha_fin=None):
+    
+    # Definir valores predeterminados para fecha_inicio y fecha_fin si no se proporcionan
+    if fecha_inicio is None:
+        fecha_inicio = df['Fecha'].min()
+    if fecha_fin is None:
+        fecha_fin = df['Fecha'].max()
+
+    # Definir columnas a filtrar y a agrupar
+    filtrar = [periodo_tiempo, 'Total', 'id_cliente', 'Boleta', 'Cantidad', 'id_producto']
+    agrupar = [periodo_tiempo]
+
+    # Actualizar si se va a categorizar
+    if Categorizar:
+        agrupar.append('Tipo')
+        filtrar.append('Tipo')
+
+    # Filtrar el DataFrame
+    df_filtrado = df[(df['Fecha'] >= fecha_inicio) & (df['Fecha'] <= fecha_fin)]
+    
+    # Realizar agrupación y cálculos de indicadores
+    df_indicadores = df_filtrado[filtrar].groupby(agrupar).agg({
+        'Total': 'sum',
+        'id_cliente': 'nunique',
+        'Boleta': 'nunique',
+        'Cantidad': 'sum',
+        'id_producto': 'nunique'
+    })
+
+    # Renombrar columnas
+    df_indicadores = df_indicadores.rename(columns={'id_cliente': 'N°_Clientes', 'id_producto': 'N°_Productos'})
+
+    # Calcular indicadores adicionales
+    df_indicadores['Ticket_Promedio'] = df_indicadores['Total'] / df_indicadores['Boleta']
+    df_indicadores['Productos_Boleta'] = df_indicadores['Cantidad'] / df_indicadores['Boleta']
+    df_indicadores['Gasto_Cliente'] = df_indicadores['Total'] / df_indicadores['N°_Clientes']
+
+    # Resetear el índice para obtener una estructura de DataFrame más plana
+    return df_indicadores.reset_index(), Categorizar
