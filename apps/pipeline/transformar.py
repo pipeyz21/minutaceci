@@ -20,7 +20,7 @@ def periodos_tiempo(df, columna_fecha):
     return df
 
 def cargar_y_limpiar(ruta, tabla):
-    df = pd.read_csv(f"{ruta}/{tabla}.csv")
+    df = pd.read_csv(f"{ruta}{tabla}.csv")
     df = limpieza_df(df)
     return df
 
@@ -48,8 +48,6 @@ def calcular_ingresos(ruta_almuerzos, ruta_otros):
     otros = otros.rename(columns={'Producto':'Producto'})
     otros['Tipo'] = 'OTROS'
 
-    otros['Boleta'] += almuerzos['Boleta'].max() + 1
-
     df = pd.concat([almuerzos, otros], sort=False)
 
     df['Cliente'] = df['Cliente'].fillna('???')
@@ -57,7 +55,7 @@ def calcular_ingresos(ruta_almuerzos, ruta_otros):
     df['Acompañamiento'] = df['Acompañamiento'].fillna('SIN ACOM.')
     
     ruta_principales = os.getenv('RUTA_PRINCIPALES')
-    precios, productos_ventas = calcular_productos_ventas(df, ruta_principales)
+    precios, productos = calcular_productos(df, ruta_principales)
 
     clientes = pd.DataFrame(df['Cliente'].drop_duplicates()).reset_index()
     clientes = clientes.drop(columns='index').reset_index().rename(columns={'index':'id_cliente'})
@@ -68,15 +66,15 @@ def calcular_ingresos(ruta_almuerzos, ruta_otros):
     extras = pd.DataFrame(df['Ensalada'].drop_duplicates()).reset_index()
     extras = extras.drop(columns='index').reset_index().rename(columns={'index':'id_extra'})
     
-    df = df.merge(clientes, 'left').merge(productos_ventas, 'left').merge(acompañamientos, 'left').merge(extras, 'left')
+    df = df.merge(clientes, 'left').merge(productos, 'left').merge(acompañamientos, 'left').merge(extras, 'left')
     df = df.rename(columns={'id':'id_producto'}).drop(columns={'Producto','Categoria','Cliente','Acompañamiento','Ensalada'})
-    df = periodos_tiempo(df, 'Fecha')
+    # df = periodos_tiempo(df, 'Fecha')
 
     ingresos = df.copy()
-    ingresos = transformar_nulos_ingresos(ingresos)
-    productos_ventas = transformar_productos_ventas(productos_ventas)
+    ingresos = transformar_ingresos(ingresos)
+    productos = transformar_productos(productos)
 
-    return ingresos, precios, productos_ventas, clientes, acompañamientos, extras
+    return ingresos, precios, productos, clientes, acompañamientos, extras
 
 def calcular_costos(ruta_compras1, ruta_compras2):
     compras1 = pd.read_csv(ruta_compras1)
@@ -87,11 +85,35 @@ def calcular_costos(ruta_compras1, ruta_compras2):
 
     df = pd.concat([compras1, compras2])
     df = df.drop(columns={'Proveedor.1', 'Nombre', 'Unidad'})
-    df = periodos_tiempo(df, 'Fecha')
+
+    df = df.dropna(subset='Producto')
+    df['Dscto'] = df['Dscto'].fillna(0)
+
+    df = df.rename(columns={'Compra':'Boleta'})
+    df = df.sort_values(by=['Fecha', 'Proveedor']).reset_index().drop(columns='index')
+
+    df['aux'] = df.Fecha + "/" + df.Proveedor
+    df['Boleta'] = 0
+
+    df['aux2'] = (df['aux'] == df['aux'].shift(1))
+
+    for i in range(1,len(df)):
+
+        j = i-1
+
+        if not df.loc[i, 'aux2']:
+            df.loc[i, 'Boleta'] = df.loc[j, 'Boleta'] + 1
+            
+        else:
+            
+            df.loc[i, 'Boleta'] = df.loc[i - 1, 'Boleta'] 
+    
+    df = df.drop(columns={'aux','aux2'})
+    # df = periodos_tiempo(df, 'Fecha')
 
     return df
 
-def calcular_productos_ventas(ingresos, ruta_principales):
+def calcular_productos(ingresos, ruta_principales):
     productos = pd.DataFrame(ingresos['Producto'].drop_duplicates())
 
     principales = pd.read_csv(ruta_principales)
@@ -102,22 +124,22 @@ def calcular_productos_ventas(ingresos, ruta_principales):
     precios = pd.merge(minutas, principales, 'inner' )
     precios = precios.drop(columns={'Principal','Categoria'})
 
-    productos_ventas = productos.merge(minutas, how='left', right_on='Principal', left_on='Producto')
-    productos_ventas = productos_ventas.sort_values('id_producto').reset_index().drop(columns={'index', 'Principal'})
-    max_id = productos_ventas['id_producto'].max()
+    productos = productos.merge(minutas, how='left', right_on='Principal', left_on='Producto')
+    productos = productos.sort_values('id_producto').reset_index().drop(columns={'index', 'Principal'})
+    max_id = productos['id_producto'].max()
 
-    indices_nulos = productos_ventas[(productos_ventas['id_producto'].isna())].index
+    indices_nulos = productos[(productos['id_producto'].isna())].index
 
-    productos_ventas['aux'] = productos_ventas.index * 1.0 + max_id
-    productos_ventas.loc[indices_nulos, 'id_producto'] = productos_ventas['aux']
-    productos_ventas = productos_ventas.drop(columns={'aux'})
-    productos_ventas = productos_ventas.merge(principales, 'left', left_on='Producto', right_on='Principal')
-    productos_ventas['Categoria'] = productos_ventas['Categoria'].replace(np.nan, 'OTROS') 
-    productos_ventas = productos_ventas.drop_duplicates(subset='id_producto').drop(columns={'Principal','Precio','Vencimiento'})
+    productos['aux'] = productos.index * 1.0 + max_id
+    productos.loc[indices_nulos, 'id_producto'] = productos['aux']
+    productos = productos.drop(columns={'aux'})
+    productos = productos.merge(principales, 'left', left_on='Producto', right_on='Principal')
+    productos['Categoria'] = productos['Categoria'].replace(np.nan, 'OTROS') 
+    productos = productos.drop_duplicates(subset='id_producto').drop(columns={'Principal','Precio','Vencimiento'})
     
     #buscar precios de otros_ingresos
     
-    return precios, productos_ventas
+    return precios, productos
 
 def calcular_precios_cercanos(df, columna_precio):
     precios = df[columna_precio].to_list()
@@ -133,7 +155,16 @@ def calcular_precios_cercanos(df, columna_precio):
         # Buscar rangos de fechas más largos
         return 0
 
-def transformar_nulos_ingresos(df):
+def calcular_arriendos(df):
+    ruta_subsidio = os.getenv('RUTA_SUBSIDIO')
+
+    arriendos = pd.read_csv(ruta_subsidio)
+    arriendos = arriendos[['Fecha','Subsidio','Copago','Contrato2']]
+    arriendos = periodos_tiempo(arriendos, 'Fecha')
+
+    return arriendos
+
+def transformar_ingresos(df):
     
     df1 = df[ (df['Descuento'].isna()) | (df['Total'].isna()) | (df['Precio'].isna()) ].copy() # subconsulta con los nulos
 
@@ -153,10 +184,13 @@ def transformar_nulos_ingresos(df):
         indice = df3.index.to_list()
         
         fecha = df2.loc[indice, 'Fecha'].to_list()
+        fecha = pd.to_datetime(fecha)
+
         fecha_min = fecha[0] - timedelta(7)
         fecha_max = fecha[0] + timedelta(7)
 
         df4 = df.copy()
+        df4['Fecha'] = pd.to_datetime(df4['Fecha'])
 
         # Falta calcular precios para productos de almuerzos 
 
@@ -199,19 +233,19 @@ def transformar_nulos_ingresos(df):
 
     return df
 
-def transformar_productos_ventas(productos_ventas):
-    productos_ventas['Envase'] = np.nan
+def transformar_productos(productos):
+    productos['Envase'] = np.nan
 
-    ct5 = productos_ventas[productos_ventas['Producto']=='ZAPALLO ITALIANO'].index
-    productos_ventas.loc[ct5, 'Envase'] = 141
+    ct5 = productos[productos['Producto']=='ZAPALLO ITALIANO'].index
+    productos.loc[ct5, 'Envase'] = 141
 
-    c18 = productos_ventas[(productos_ventas['Producto'].str.startswith('LASAÑA')) | (productos_ventas['Categoria']=='PASTELES')].index
-    productos_ventas.loc[c18, 'Envase'] = 7
+    c18 = productos[(productos['Producto'].str.startswith('LASAÑA')) | (productos['Categoria']=='PASTELES')].index
+    productos.loc[c18, 'Envase'] = 7
 
-    marmitas = productos_ventas[(productos_ventas['Envase'].isna()) & (productos_ventas['Categoria'] != 'OTROS')].index
-    productos_ventas.loc[marmitas, 'Envase'] = 3
+    marmitas = productos[(productos['Envase'].isna()) & (productos['Categoria'] != 'OTROS')].index
+    productos.loc[marmitas, 'Envase'] = 3
 
-    return productos_ventas
+    return productos
 
 def encontrar_favoritos(lista):
     datos = pd.Series(lista).value_counts().reset_index().rename(columns={'index': 'id', 0: 'cantidad'})

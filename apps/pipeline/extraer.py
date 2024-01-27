@@ -7,7 +7,7 @@ class ManejadorExcel:
     def __init__(self):
         pass  # Puedes inicializar cualquier estado necesario aquí
 
-    def extraer_excel(self, ruta_origen, ruta_destino, nombre_archivo):
+    def _copiar_excel(self, ruta_origen, ruta_destino, nombre_archivo):
         ruta_destino = f'{ruta_destino}/{nombre_archivo}.xlsx'
         if os.path.exists(ruta_origen):
             try:
@@ -20,17 +20,26 @@ class ManejadorExcel:
             print("El archivo de origen no existe")
             return None
 
-    def extraer_tablas_excel(self, ruta_excel):
+    def _extraer_tablas_excel(self, ruta_origen, ruta_destino):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message='Data Validation extension is not supported and will be removed')
-            xls = pd.ExcelFile(ruta_excel)
+            xls = pd.ExcelFile(ruta_origen)
 
             for nombre_hoja in xls.sheet_names:
                 tabla = xls.parse(nombre_hoja)
-                tabla.to_csv(f"./datos/crudos/{nombre_hoja.lower()}.csv", index=False)
+                tabla.to_csv(f"{ruta_destino}/{nombre_hoja.lower()}.csv", index=False)
                 print(f'Tabla {nombre_hoja.lower()} extraída')
+
+    def extraer_excel(self, ruta_origen, ruta_destino, nombre_archivo):
+        ruta = self._copiar_excel(ruta_origen, ruta_destino, nombre_archivo)
+        ruta_crudos = ruta_destino
+
+        if ruta is not None:
+            self._extraer_tablas_excel(ruta, ruta_crudos)
+        else:
+            print("No se pudo extraer el archivo, la ruta de destino es None.")
 
 # Ejemplo de uso de la clase
 # manejador = ManejadorExcel()
-# ruta = manejador.extraer_excel("ruta_origen.xlsx", "ruta_destino.xlsx")
-# manejador.extraer_tablas_excel(ruta)
+# manejador.extraer_excel("ruta_origen.xlsx", "ruta_destino.xlsx", "nombre_archivo")
+
