@@ -1,10 +1,15 @@
-import transformar
+import transformar_inicial
 import os
 import pandas as pd
+import sys
 from dotenv import load_dotenv
 from datetime import datetime
 from extraer import ExtraerExcel
 from cargar import CargarDataFrame
+
+sys.path.append('apps/pipeline/transformar')
+
+from transformar import Transformar
 
 load_dotenv()
 
@@ -18,28 +23,35 @@ def extraer_datos():
 
 
 
+# def transformar1_datos():
+#     print('----------------Comienza la transformación de datos----------------')
+
+#     df_para_trabajar = ['acompañamientos', 'subsidio', 'almuerzos', 'compras1', 'compras2', 
+#                         'otros_ingresos', 'principales', 'productos', 'proveedores']
+    
+
+#     transformar_inicial.procesar_tablas(df_para_trabajar, os.getenv('RUTA_DESTINO'))
+  
+#     ingresos, precios, productos, clientes, acompañamientos, extras = transformar_inicial.calcular_ingresos(os.getenv('RUTA_ALMUERZOS'), 
+#                                                                                                     ruta_otros = os.getenv('RUTA_OTROS'))
+    
+
+#     costos = transformar_inicial.calcular_costos(os.getenv('RUTA_COMPRAS1'), os.getenv('RUTA_COMPRAS2'), os.getenv('RUTA_TRANSPORTE'))
+#     arriendos = transformar_inicial.calcular_arriendos(os.getenv('RUTA_SUBSIDIO'))
+    
+
+#     return [ingresos, precios, productos, clientes, acompañamientos, extras, costos, arriendos]
+
 def transformar_datos():
     print('----------------Comienza la transformación de datos----------------')
+    transformador = Transformar()
+    lista = transformador.procesar_datos()
+    return lista
 
-    df_para_trabajar = ['acompañamientos', 'subsidio', 'almuerzos', 'compras1', 'compras2', 
-                        'otros_ingresos', 'principales', 'productos', 'proveedores']
-    
-
-    transformar.procesar_tablas(df_para_trabajar, os.getenv('RUTA_DESTINO'))
-  
-    ingresos, precios, productos, clientes, acompañamientos, extras = transformar.calcular_ingresos(os.getenv('RUTA_ALMUERZOS'), 
-                                                                                                    ruta_otros = os.getenv('RUTA_OTROS'))
-    
-
-    costos = transformar.calcular_costos(os.getenv('RUTA_COMPRAS1'), os.getenv('RUTA_COMPRAS2'), os.getenv('RUTA_TRANSPORTE'))
-    arriendos = transformar.calcular_arriendos(os.getenv('RUTA_SUBSIDIO'))
-    
-
-    return [ingresos, precios, productos, clientes, acompañamientos, extras, costos, arriendos]
 
 def cargar_datos(lista):
 
-    nombres = ['ingresos', 'precios', 'productos', 'clientes', 'acompañamientos', 'extras', 'costos', 'arriendos']
+    nombres = ['acompañamientos', 'arriendos', 'clientes', 'costos', 'extras', 'ingresos', 'insumos', 'precios', 'productos', 'proveedores']
     cargar = CargarDataFrame()
     
     print('---------------------Comienza la carga de datos---------------------')
@@ -47,9 +59,6 @@ def cargar_datos(lista):
         df = lista[i]
         cargar.cargar_datos(df, os.getenv('RUTA_PROCESADOS'), nombres[i])
         
-        
-    cargar.cargar_datos(pd.read_csv(os.getenv('RUTA_MATERIAL')), os.getenv('RUTA_PROCESADOS'), 'insumos')
-    cargar.cargar_datos(pd.read_csv(os.getenv('RUTA_PROVEEDORES')), os.getenv('RUTA_PROCESADOS'), 'proveedores')
 
         
 
@@ -62,6 +71,7 @@ def main():
     
     extraer_datos()
  
+    # lista = transformar1_datos()
     lista = transformar_datos()
 
     cargar_datos(lista)

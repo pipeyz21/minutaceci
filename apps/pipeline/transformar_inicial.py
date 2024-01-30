@@ -6,7 +6,6 @@ from datetime import timedelta
 
 load_dotenv()
 
-
 def periodos_tiempo(df, columna_fecha):
     df[columna_fecha] = pd.to_datetime(df[columna_fecha])
     df['Año'] = df[columna_fecha].dt.year

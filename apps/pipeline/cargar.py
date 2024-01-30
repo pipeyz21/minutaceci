@@ -1,4 +1,3 @@
-import mysql.connector
 import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
@@ -14,8 +13,8 @@ class CargarDataFrame:
         
 
     def _cargar_sql(self, df, nombre):
-        
-        engine = create_engine(f"mysql+mysqlconnector://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}")
+        url = f"mysql+mysqlconnector://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}"
+        engine = create_engine(url=url)
         df.to_sql(nombre, con=engine, index=False, if_exists='replace')
     
     def _cargar_bigquery(self, df, nombre):
