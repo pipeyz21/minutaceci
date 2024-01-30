@@ -3,7 +3,7 @@ import shutil
 import pandas as pd
 import warnings
 
-class ManejadorExcel:
+class ExtraerExcel:
     def __init__(self):
         pass  # Puedes inicializar cualquier estado necesario aquí
 
@@ -43,3 +43,18 @@ class ManejadorExcel:
 # manejador = ManejadorExcel()
 # manejador.extraer_excel("ruta_origen.xlsx", "ruta_destino.xlsx", "nombre_archivo")
 
+# class ManejadorCSV:
+#     def __init__(self) -> None:
+#         pass
+
+#     def extraer_csv(self, ruta_origen, ruta_destino, nombre_archivo):
+#         ruta_destino = f"{ruta_destino}{nombre_archivo}.csv"
+#         if os.path.exists(ruta_origen):
+#             try:
+#                 shutil.copy(ruta_origen, ruta_destino)
+#                 print('Archivo copiado con éxito')
+            
+#             except Exception as e:
+#                 print(f"Error al copiar el archivo: {e}")
+#         else:
+#             print("El archivo no existe")

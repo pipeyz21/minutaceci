@@ -8,3 +8,7 @@ datos/*
 __pycache__
 
 analisis_datos/*
+
+scraping
+
+transformar_experimental
