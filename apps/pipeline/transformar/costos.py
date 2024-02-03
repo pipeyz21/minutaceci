@@ -89,5 +89,7 @@ class TablaCostos(TablaBase):
         
         df = df.drop(columns={'aux','aux2'})
 
+        df = self.aplicar_fechas(df)
+
         return df
 

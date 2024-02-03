@@ -112,7 +112,8 @@ class TablaIngresos(TablaAlmuerzos, TablaOtros):
         df1['Total'] = (df1['Cantidad'] * df1['Precio']) - df1['Descuento']
 
         df.loc[df1.index.to_list(), :] = df1
-        
+        df = self.aplicar_fechas(df)
+
         return df
     
     def intersectar_tablas(self, ingresos, clientes, productos, acompañamientos, extras):

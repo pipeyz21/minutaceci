@@ -1,15 +1,14 @@
-import transformar_inicial
 import os
 import pandas as pd
 import sys
+sys.path.append('apps/pipeline/transformar')
 from dotenv import load_dotenv
 from datetime import datetime
-from extraer import ExtraerExcel
+from extraer import ExtraerExcel, ExtraerArchivosTexto
+from transformar import Transformar
 from cargar import CargarDataFrame
 
-sys.path.append('apps/pipeline/transformar')
 
-from transformar import Transformar
 
 load_dotenv()
 
@@ -17,30 +16,12 @@ def extraer_datos():
 
     print('------------------Comienza la extracción de datos------------------')
     
-    extraer = ExtraerExcel()
+    excel = ExtraerExcel()
+    texto = ExtraerArchivosTexto()
 
-    extraer.extraer_excel(os.getenv('RUTA_MINUTACECI'), os.getenv('RUTA_DESTINO'), 'minutaceci') 
+    excel.extraer_excel(os.getenv('RUTA_MINUTACECI'), os.getenv('RUTA_DESTINO'), 'minutaceci') 
+    texto.extraer_texto(os.getenv('RUTA_CHAT_WSP'), os.getenv('RUTA_DESTINO'), 'oferta_sin_procesar')
 
-
-
-# def transformar1_datos():
-#     print('----------------Comienza la transformación de datos----------------')
-
-#     df_para_trabajar = ['acompañamientos', 'subsidio', 'almuerzos', 'compras1', 'compras2', 
-#                         'otros_ingresos', 'principales', 'productos', 'proveedores']
-    
-
-#     transformar_inicial.procesar_tablas(df_para_trabajar, os.getenv('RUTA_DESTINO'))
-  
-#     ingresos, precios, productos, clientes, acompañamientos, extras = transformar_inicial.calcular_ingresos(os.getenv('RUTA_ALMUERZOS'), 
-#                                                                                                     ruta_otros = os.getenv('RUTA_OTROS'))
-    
-
-#     costos = transformar_inicial.calcular_costos(os.getenv('RUTA_COMPRAS1'), os.getenv('RUTA_COMPRAS2'), os.getenv('RUTA_TRANSPORTE'))
-#     arriendos = transformar_inicial.calcular_arriendos(os.getenv('RUTA_SUBSIDIO'))
-    
-
-#     return [ingresos, precios, productos, clientes, acompañamientos, extras, costos, arriendos]
 
 def transformar_datos():
     print('----------------Comienza la transformación de datos----------------')
