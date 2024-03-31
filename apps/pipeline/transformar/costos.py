@@ -20,7 +20,7 @@ class TablaCostos(TablaBase):
 
         return df
     
-    def __estimar_costos_transporte(self, ruta_compras1, ruta_compras2, ruta_compras3 proveedores, insumos):
+    def __estimar_costos_transporte(self, ruta_compras1, ruta_compras2, ruta_compras3, proveedores, insumos):
         costos = self._concatenar_compras(ruta_compras1, ruta_compras2, ruta_compras3)
         df = costos.merge(proveedores, how='inner', left_on='Proveedor',  right_on='ID_PROVEEDOR').merge(
                                                 insumos, 
@@ -70,7 +70,7 @@ class TablaCostos(TablaBase):
 
     def procesar_costos(self, ruta_compras1, ruta_compras2, ruta_compras3, proveedores, insumos):
         costos = self._concatenar_compras(ruta_compras1, ruta_compras2, ruta_compras3)
-        transporte = self.__estimar_costos_transporte(ruta_compras1, ruta_compras2, proveedores, insumos)
+        transporte = self.__estimar_costos_transporte(ruta_compras1, ruta_compras2, ruta_compras3, proveedores, insumos)
 
         df = pd.concat([costos, transporte])
         df = df.sort_values(by=['Fecha', 'Proveedor']).reset_index().drop(columns='index')

@@ -64,7 +64,7 @@ class Transformar:
         print('Tabla insumos transformada con éxito')
 
         costos = TablaCostos()
-        costos = costos.procesar_costos(self.ruta_compras1, self.ruta_compras2, proveedores, insumos)
+        costos = costos.procesar_costos(self.ruta_compras1, self.ruta_compras2, self.ruta_compras3, proveedores, insumos)
         print('Tabla costos transformada con éxito')
 
         return [acompañamientos, arriendos, clientes, costos, extras, ingresos, insumos, precios, productos, proveedores]
