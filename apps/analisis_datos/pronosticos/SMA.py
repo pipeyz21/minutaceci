@@ -76,13 +76,13 @@ class SMA:
 
         self.graficar(df, columna_a_predecir, 'SMA')
 
-load_dotenv()
 
+if __name__ == "__main__":
+    load_dotenv()
+    sma = SMA()
+    ruta_ingresos = os.getenv('RUTA_INGRESOS')
+    ingresos = pd.read_csv(ruta_ingresos)
 
-sma = SMA()
-ruta_ingresos = os.getenv('RUTA_INGRESOS')
-ingresos = pd.read_csv(ruta_ingresos)
+    ingresos = indicadores_ingresos(ingresos, 'Semana', '2023-01-01', '2023-12-31')[['Periodo','Total']]
 
-ingresos = indicadores_ingresos(ingresos, 'Semana', '2023-01-01', '2023-12-31')[['Periodo','Total']]
-
-sma.resultado(ingresos, 'Total', 3)
+    sma.resultado(ingresos, 'Total', 3)

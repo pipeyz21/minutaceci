@@ -3,6 +3,7 @@ import os
 import re
 import nltk
 from dotenv import load_dotenv
+from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import stopwords
@@ -14,8 +15,7 @@ def download_nltk_resources():
     nltk.download('punkt')
 
 class TextSimiliratyCalculator:
-    def __init__(self, df):
-        self.df = df
+    def __init__(self):
         self.stop_words = set(stopwords.words('spanish'))
 
     def preprocess_text(self, text):
@@ -23,24 +23,25 @@ class TextSimiliratyCalculator:
         filtered_words = [word for word in words if word.isalnum() and word not in self.stop_words]
         return ' '.join(filtered_words)
     
-    def calculate_similarity_matrix(self):
-        self.df['Mensaje_Preprocesado'] = self.df['Mensaje'].apply(self.preprocess_text)
+    def calculate_similarity_matrix(self, df):
+        df['Mensaje_Preprocesado'] = df['Mensaje'].apply(self.preprocess_text)
 
         vectorizer = TfidfVectorizer()
-        tfidf_matrix = vectorizer.fit_transform(self.df['Mensaje_Preprocesado'])
+        tfidf_matrix = vectorizer.fit_transform(df['Mensaje_Preprocesado'])
 
         similarity_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
 
-        similarity_df = pd.DataFrame(similarity_matrix, index=self.df['id'], columns=self.df['id'])
+        similarity_df = pd.DataFrame(similarity_matrix, index=df['id'], columns=df['id'])
         return similarity_df
 
 
-class TablaOferta(TablaBase):
+class TablaOferta(TablaBase, TextSimiliratyCalculator):
     def __init__(self):
         super().__init__()
+        self.stop_words = set(stopwords.words('spanish'))
         self.datos = {'Fecha': [], 'Hora': [], 'Mensaje': []}
 
-    def _conversion_df(self, ruta_origen, ruta_destino):
+    def _conversion_df(self, ruta_origen):
         with open(ruta_origen, 'r', encoding='utf-8') as archivo:
             # Variables para almacenar información temporal
             fecha = ''
@@ -73,11 +74,23 @@ class TablaOferta(TablaBase):
         self.datos['Hora'].append(hora)
         self.datos['Mensaje'].append(mensaje)
 
-        # Creamos el DataFrame
+        # Creamos y filtramos el DataFrame 
         df = pd.DataFrame(self.datos).reset_index().rename(columns={'index':'id'})
+        # df = df[(df['Mensaje'] != 'Eliminaste este mensaje.') & (df['Mensaje']!='<Multimedia omitido>')]
 
         # Guardamos el DataFrame como CSV
-        # df.to_csv(ruta_destino, index=True)
+        return df
+    
+    def clustering(self, ruta_origen, ruta_destino):
+        df = self._conversion_df(ruta_origen)
+        matriz_similitud = self.calculate_similarity_matrix(df)
+
+        kmeans = KMeans(7, random_state=42)
+        clusters = kmeans.fit_predict(matriz_similitud)
+
+        df['cluster'] = clusters
+
+        df.to_csv(ruta_destino, index=True)
         print('DataFrame guardado correctamente')
 
         return df
@@ -89,18 +102,13 @@ if __name__ == '__main__':
     download_nltk_resources()
 
     oferta = TablaOferta()
-    oferta = oferta._conversion_df(os.getenv('RUTA_OFERTA_SIN_PROCESAR'), os.getenv('RUTA_OFERTA_DIARIA'))
-    # print(oferta)
+    oferta = oferta.clustering(os.getenv('RUTA_OFERTA_SIN_PROCESAR'), os.getenv('RUTA_OFERTA_DIARIA'))
+    
+    
 
-    similarity_calculator = TextSimiliratyCalculator(oferta)
-    similarity_matrix = similarity_calculator.calculate_similarity_matrix()
 
-    id1 = 1
-    id2 = 2
-    similarity_value = similarity_matrix.loc[id1, id2]
+    
 
-    print(f"Similitud entre mensaje {id1} y mensaje {id2}: {similarity_value}")
 
-    # print(similiraty_matrix)
 
     

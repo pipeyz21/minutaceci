@@ -57,7 +57,7 @@ def main():
 
     cargar_datos(lista)
 
-    t2 = datetime.utcnow() - t1
+    t2 = datetime.now() - t1
     
     registro_tiempo(t1, t2)
 

@@ -7,9 +7,10 @@ class TablaCostos(TablaBase):
     def transformar_df(self, ruta):
         return super().transformar_df(ruta)
     
-    def _concatenar_compras(self, ruta_compras1, ruta_compras2):
+    def _concatenar_compras(self, ruta_compras1, ruta_compras2, ruta_compras3):
         compras1 = self.transformar_df(ruta_compras1)
         compras2 = self.transformar_df(ruta_compras2)
+        compras3 = self.transformar_df(ruta_compras3)
         df = pd.concat([compras1, compras2])
         df = df.drop(columns={'Proveedor.1', 'Nombre', 'Unidad'})
 
@@ -19,12 +20,13 @@ class TablaCostos(TablaBase):
 
         return df
     
-    def __estimar_costos_transporte(self, ruta_compras1, ruta_compras2, proveedores, insumos):
-        costos = self._concatenar_compras(ruta_compras1, ruta_compras2)
-        df = costos.merge(proveedores, how='inner', left_on='Proveedor',  right_on='ID_PROVEEDOR').merge(insumos, 
-                                                 how='inner', 
-                                                 left_on='Producto',
-                                                 right_on='ID_PRODUCTO')
+    def __estimar_costos_transporte(self, ruta_compras1, ruta_compras2, ruta_compras3 proveedores, insumos):
+        costos = self._concatenar_compras(ruta_compras1, ruta_compras2, ruta_compras3)
+        df = costos.merge(proveedores, how='inner', left_on='Proveedor',  right_on='ID_PROVEEDOR').merge(
+                                                insumos, 
+                                                how='inner', 
+                                                left_on='Producto',
+                                                right_on='ID_PRODUCTO')
     
         df = df[['Boleta','Fecha','NOMBRE_x','Producto','Total','SECTOR','TIPO']]
         fechas = df[df['Producto']==1004]['Fecha'].to_list()
@@ -66,8 +68,8 @@ class TablaCostos(TablaBase):
 
         return df
 
-    def procesar_costos(self, ruta_compras1, ruta_compras2, proveedores, insumos):
-        costos = self._concatenar_compras(ruta_compras1, ruta_compras2)
+    def procesar_costos(self, ruta_compras1, ruta_compras2, ruta_compras3, proveedores, insumos):
+        costos = self._concatenar_compras(ruta_compras1, ruta_compras2, ruta_compras3)
         transporte = self.__estimar_costos_transporte(ruta_compras1, ruta_compras2, proveedores, insumos)
 
         df = pd.concat([costos, transporte])

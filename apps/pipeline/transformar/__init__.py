@@ -24,6 +24,7 @@ class Transformar:
         self.ruta_insumos = os.getenv('RUTA_MATERIAL')
         self.ruta_compras1 = os.getenv('RUTA_COMPRAS1')
         self.ruta_compras2 = os.getenv('RUTA_COMPRAS2')
+        self.ruta_compras3 = os.getenv('RUTA_COMPRAS3')
     
     def procesar_datos(self):
         clientes = TablaClientes()
